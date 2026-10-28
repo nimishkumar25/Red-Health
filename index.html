@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RED.HEALTH Emergency Connect | Zero-Trust Healthcare Dispatch Platform</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#FFF1F2',
+              100: '#FFE4E6',
+              200: '#FECDD3',
+              500: '#F43F5E',
+              600: '#E11D48', /* Primary RED.HEALTH Crimson */
+              700: '#BE123C',
+              800: '#9F1239',
+              900: '#881337',
+              dark: '#0F172A',
+              card: '#FFFFFF',
+              border: '#E2E8F0',
+              accent: '#0284C7',
+              emerald: '#059669',
+              amber: '#D97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col selection:bg-rose-500 selection:text-white">
+
+  <!-- Main Top Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-6 py-3 flex items-center justify-between shadow-sm">
+    <!-- Brand Info -->
+    <div class="flex items-center space-x-4">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center shadow-md shadow-rose-500/20 text-white">
+        <i class="fa-solid fa-truck-medical text-lg"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="text-base font-extrabold tracking-tight text-slate-900 font-sans">RED<span class="text-rose-600">.HEALTH</span></span>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">EMERGENCY CONNECT</span>
+          <span class="hidden md:inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+            Zero-Trust HIPAA Engine
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-500">Autonomous Voice Triage, Smart Hospital Coordination & Fleet Telemetry</p>
+      </div>
+    </div>
+
+    <!-- Live Telemetry KPI Ticker -->
+    <div class="hidden xl:flex items-center space-x-6 text-xs border-x border-slate-200 px-6">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 font-medium">AMBULANCE FLEET</div>
+          <div class="font-bold text-slate-800" id="header-amb-count">4 Active (1 Dispatched)</div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+          <i class="fa-solid fa-hospital"></i>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 font-medium">NETWORK HOSPITALS</div>
+          <div class="font-bold text-slate-800" id="header-hosp-count">5 Verified (89 Beds)</div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+          <i class="fa-solid fa-stopwatch"></i>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 font-medium">AVG DISPATCH ETA</div>
+          <div class="font-bold text-slate-800 font-mono">4.2 Minutes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Controls: Google Maps API Badge, RBAC Role, Audit Modal -->
+    <div class="flex items-center space-x-3 text-xs">
+      <!-- Google Maps API Status Button -->
+      <button id="open-gmaps-modal-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition flex items-center space-x-2">
+        <i class="fa-brands fa-google text-rose-600"></i>
+        <span id="gmaps-status-pill">Google Maps API: Ready</span>
+        <span class="text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">Configure</span>
+      </button>
+
+      <!-- RBAC Role Switcher -->
+      <div class="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
+        <i class="fa-solid fa-user-shield text-slate-400 text-xs"></i>
+        <span class="text-slate-500 font-medium">Role:</span>
+        <select id="role-select" class="bg-transparent font-semibold text-rose-600 focus:outline-none cursor-pointer">
+          <option value="Dispatcher">Dispatcher (Full)</option>
+          <option value="Paramedic">Paramedic (Telemetry)</option>
+          <option value="Hospital Admin">Hospital Admin (Bed Sync)</option>
+          <option value="User">User (Public Caller)</option>
+        </select>
+      </div>
+
+      <!-- Audit Ledger Inspector -->
+      <button id="verify-audit-btn" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg font-semibold border border-rose-200 transition flex items-center space-x-1.5">
+        <i class="fa-solid fa-shield-halved text-rose-600"></i>
+        <span>Audit Ledger</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Container: Left Sidebar Navigation + Workspace Content Area -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- LEFT SIDEBAR: 5 REQUIRED OPTION FEATURES   -->
+    <!-- ========================================== -->
+    <aside class="w-72 lg:w-80 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 shadow-sm z-30">
+      <div class="p-4 space-y-4">
+        <!-- Sidebar Headline -->
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Command Navigation</div>
+          
+          <!-- Master Overview Toggle -->
+          <button id="nav-overview" class="feature-nav-btn active mb-1">
+            <span class="feature-number"><i class="fa-solid fa-gauge-high text-xs"></i></span>
+            <div class="flex-1">
+              <div class="text-xs font-bold text-slate-900">Command Center Overview</div>
+              <div class="text-[11px] text-slate-500">Unified live dispatch station</div>
+            </div>
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100">
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Core Platform Features</div>
+          <div class="space-y-1.5">
+
+            <!-- 1. Voice based emergency request -->
+            <button id="nav-voice" class="feature-nav-btn">
+              <span class="feature-number">1</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Voice Emergency Request</span>
+                  <span class="text-[9px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded">&lt;500ms</span>
+                </div>
+                <div class="text-[11px] text-slate-500">Sub-second AI intake & PII scrub</div>
+              </div>
+            </button>
+
+            <!-- 2. Smart Hospital coordination -->
+            <button id="nav-coordination" class="feature-nav-btn">
+              <span class="feature-number">2</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Smart Hospital Coordination</span>
+                  <span class="text-[9px] bg-sky-100 text-sky-700 font-bold px-1.5 py-0.5 rounded">AI Match</span>
+                </div>
+                <div class="text-[11px] text-slate-500">Capability & readiness scoring</div>
+              </div>
+            </button>
+
+            <!-- 3. Connected emergency response -->
+            <button id="nav-response" class="feature-nav-btn">
+              <span class="feature-number">3</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Connected Emergency Response</span>
+                  <span class="text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">Rapid</span>
+                </div>
+                <div class="text-[11px] text-slate-500">Ambulance & hospital coordination faster</div>
+              </div>
+            </button>
+
+            <!-- 4. Real time hospital information -->
+            <button id="nav-hospital-info" class="feature-nav-btn">
+              <span class="feature-number">4</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Real-time Hospital Info</span>
+                  <span class="text-[9px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">Live Sync</span>
+                </div>
+                <div class="text-[11px] text-slate-500">Connecting patients with facilities faster</div>
+              </div>
+            </button>
+
+            <!-- 5. Ambulance on a map (Google Maps API) -->
+            <button id="nav-map" class="feature-nav-btn">
+              <span class="feature-number">5</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Ambulance on a Map</span>
+                  <span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded">Google Maps</span>
+                </div>
+                <div class="text-[11px] text-slate-500">Live fleet GPS & official API keys</div>
+              </div>
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Left Sidebar Footer: WebSocket & Security Status -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50/70 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span id="ws-status" class="text-slate-600 font-mono text-[11px]">Telemetry WS: Connected</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400">12ms Latency</span>
+        </div>
+
+        <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
+          <span class="flex items-center space-x-1.5">
+            <i class="fa-solid fa-lock text-rose-600 text-xs"></i>
+            <span class="font-medium text-slate-700">AES-256 + SHA-256</span>
+          </span>
+          <span class="font-bold text-emerald-600">Tamper-Proof</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!-- WORKSPACE VIEWS CONTAINER                  -->
+    <!-- ========================================== -->
+    <main class="flex-1 overflow-y-auto p-5 lg:p-6 bg-slate-50">
+
+      <!-- ============================================================== -->
+      <!-- VIEW 0: COMMAND CENTER OVERVIEW (ALL-IN-ONE HOLISTIC COCKPIT) -->
+      <!-- ============================================================== -->
+      <div id="view-overview" class="view-panel space-y-6">
+
+        <!-- Top Overview Banner -->
+        <div class="bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-2xl p-5 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 text-[11px] font-bold bg-white/20 rounded-md tracking-wider">COMMAND CENTER OVERVIEW</span>
+              <span class="text-rose-200 text-xs">• Real-Time Incident Orchestration</span>
+            </div>
+            <h1 class="text-xl font-extrabold tracking-tight">Active Emergency Dispatch & Healthcare Coordination Matrix</h1>
+            <p class="text-xs text-rose-100 max-w-2xl">
+              Coordinating high-stakes medical emergencies through sub-second voice intake, capability-matched hospital routing, connected ambulance telemetry, and live Google Maps fleet tracking.
+            </p>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex items-center space-x-2.5 shrink-0">
+            <button onclick="document.getElementById('nav-voice').click()" class="bg-white hover:bg-rose-50 text-rose-700 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-sm flex items-center space-x-2">
+              <i class="fa-solid fa-microphone"></i>
+              <span>New Voice Intake</span>
+            </button>
+            <button onclick="document.getElementById('nav-map').click()" class="bg-rose-800/80 hover:bg-rose-800 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition border border-rose-500/50 flex items-center space-x-2">
+              <i class="fa-solid fa-map-location-dot"></i>
+              <span>Live Fleet Map</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3-Column Grid for Overview -->
+        <div class="grid grid-cols-12 gap-6">
+
+          <!-- Left Column (4 Cols): Voice Intake & AI Triage Quick Widget -->
+          <div class="col-span-12 lg:col-span-4 space-y-6">
+
+            <!-- 1. Voice Intake Card -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs border border-rose-100">1</div>
+                  <h2 class="text-sm font-bold text-slate-900">Voice Emergency Request</h2>
+                </div>
+                <span class="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">&lt;500ms AI Speech</span>
+              </div>
+
+              <!-- Audio Waveform Visualizer -->
+              <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col items-center justify-center space-y-3">
+                <canvas id="waveform-canvas" class="w-full h-14 bg-white rounded-lg border border-slate-200"></canvas>
+                <div class="flex items-center space-x-3 w-full">
+                  <button id="record-btn" class="h-12 w-12 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md shadow-rose-600/30 transition hover:scale-105 active:scale-95 shrink-0">
+                    <i class="fa-solid fa-microphone text-xl" id="record-icon"></i>
+                  </button>
+                  <div class="flex flex-col flex-1 min-w-0">
+                    <span id="record-status" class="text-xs font-bold text-slate-800 truncate">Tap to Record Voice Emergency</span>
+                    <span class="text-[11px] text-slate-500">Live Web Audio API Waveform Stream</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Presets -->
+              <div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Simulate Emergency Call Payload:</span>
+                <div class="grid grid-cols-2 gap-2">
+                  <button class="preset-btn bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 p-2.5 rounded-xl text-left transition group" data-scenario="cardiac">
+                    <div class="text-xs font-bold text-rose-700 flex items-center space-x-1">
+                      <i class="fa-solid fa-heart-pulse text-rose-500"></i>
+                      <span>Cardiac Arrest</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 truncate">65yo male, severe chest pain</div>
+                  </button>
+
+                  <button class="preset-btn bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 p-2.5 rounded-xl text-left transition group" data-scenario="trauma">
+                    <div class="text-xs font-bold text-amber-700 flex items-center space-x-1">
+                      <i class="fa-solid fa-car-burst text-amber-500"></i>
+                      <span>Highway Trauma</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 truncate">Car collision, compound fracture</div>
+                  </button>
+
+                  <button class="preset-btn bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-200 p-2.5 rounded-xl text-left transition group" data-scenario="respiratory">
+                    <div class="text-xs font-bold text-sky-700 flex items-center space-x-1">
+                      <i class="fa-solid fa-lungs text-sky-500"></i>
+                      <span>Severe Asthma</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 truncate">Asthma crisis, cyanosis</div>
+                  </button>
+
+                  <button class="preset-btn bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 p-2.5 rounded-xl text-left transition group" data-scenario="failsafe">
+                    <div class="text-xs font-bold text-purple-700 flex items-center space-x-1">
+                      <i class="fa-solid fa-shield-cat text-purple-500"></i>
+                      <span>Fail-Safe Mode</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 truncate">Ambiguous/Noisy audio test</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Scrubbed Transcript Box -->
+              <div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Live Transcript & Scrubbed PII:</span>
+                <div id="transcript-box" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-700 min-h-[60px] max-h-[85px] overflow-y-auto leading-relaxed">
+                  Awaiting emergency call or microphone audio stream...
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. AI Live Triage Matrix Card -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <div class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-xs border border-sky-100">2</div>
+                  <h2 class="text-sm font-bold text-slate-900">Live AI Triage Matrix</h2>
+                </div>
+                <span id="triage-severity-badge" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+                  Awaiting Intake
+                </span>
+              </div>
+
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-slate-500">Emergency Type:</span>
+                  <span class="font-bold text-slate-900" id="triage-type">--</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-slate-500">AI Confidence:</span>
+                  <span class="font-bold text-sky-600" id="triage-confidence">--</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-slate-500">Patient Age Est:</span>
+                  <span class="font-bold text-slate-700" id="triage-age">--</span>
+                </div>
+              </div>
+
+              <!-- Clinical Flags Grid -->
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center space-x-2">
+                  <div class="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+                    <i class="fa-solid fa-bed-pulse"></i>
+                  </div>
+                  <div>
+                    <div class="text-[10px] text-slate-500">ICU Required</div>
+                    <div class="text-xs font-bold text-slate-800" id="flag-icu">--</div>
+                  </div>
+                </div>
+
+                <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center space-x-2">
+                  <div class="p-1.5 rounded-lg bg-sky-50 text-sky-600">
+                    <i class="fa-solid fa-mask-ventilator"></i>
+                  </div>
+                  <div>
+                    <div class="text-[10px] text-slate-500">Oxygen Support</div>
+                    <div class="text-xs font-bold text-slate-800" id="flag-oxygen">--</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fail-Safe Banner -->
+              <div id="failsafe-banner" class="hidden bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center space-x-2.5 text-rose-800 text-xs">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
+                <div>
+                  <span class="font-bold block">FAIL-SAFE PROTOCOL ENGAGED</span>
+                  <span class="text-[11px] text-rose-600">Uncertainty detected. Triage escalated to CRITICAL tier automatically for patient safety.</span>
+                </div>
+              </div>
+
+              <button id="trigger-match-btn" disabled class="w-full bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm shadow-rose-600/30 text-xs">
+                <i class="fa-solid fa-magnifying-glass-location"></i>
+                <span>Match Nearest Hospital Capabilities</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Center Column (8 Cols): Map, Capability Matching, and Connected Response -->
+          <div class="col-span-12 lg:col-span-8 space-y-6">
+
+            <!-- 5. Ambulance on a Map Card -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col relative h-[400px]">
+              <div class="flex items-center justify-between mb-3 px-1">
+                <div class="flex items-center space-x-3">
+                  <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs border border-indigo-100">5</div>
+                  <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                    <span>Ambulance on a Map</span>
+                    <span class="text-[10px] font-normal text-slate-500">• Google Maps Official API Enabled</span>
+                  </h2>
+                </div>
+
+                <div class="flex items-center space-x-2 text-xs">
+                  <span class="text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200" id="map-coords">
+                    12.9716° N, 77.5946° E
+                  </span>
+                  <button onclick="document.getElementById('nav-map').click()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] font-semibold transition">
+                    Expand Map <i class="fa-solid fa-up-right-and-down-left-from-center ml-1"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Map Container -->
+              <div class="flex-1 w-full rounded-xl border border-slate-200 relative overflow-hidden">
+                <div id="google-map-container" class="hidden absolute inset-0 z-10"></div>
+                <div id="leaflet-map" class="absolute inset-0 z-0"></div>
+
+                <!-- Google Maps Floating Overlay Notice -->
+                <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] shadow-md flex items-center space-x-2">
+                  <i class="fa-solid fa-layer-group text-rose-600"></i>
+                  <span class="text-slate-700 font-medium" id="map-active-engine-text">Interactive Map: Leaflet Vector Ready (Google Maps API Key Supported)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Sub-Grid: 3. Connected Emergency Response & 4. Hospital Capability Matching -->
+            <div class="grid grid-cols-12 gap-6">
+
+              <!-- Hospital Capability Matcher List (7 Cols) -->
+              <div class="col-span-12 md:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs border border-emerald-100">4</div>
+                      <h3 class="text-xs font-bold text-slate-900">Hospital Capability Match</h3>
+                    </div>
+                    <span class="text-[11px] text-slate-500" id="match-count">0 Facilities Matched</span>
+                  </div>
+
+                  <div id="hospitals-list" class="space-y-2.5 max-h-[190px] overflow-y-auto pr-1">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                      Run Voice Triage & click "Match Nearest Hospital" to query live readiness index.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span class="text-slate-500">Assigned Unit:</span>
+                    <span class="font-bold text-rose-600 ml-1" id="assigned-unit-name">AMB-101 (Red Rescue Alpha)</span>
+                  </div>
+                  <button id="dispatch-now-btn" disabled class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold px-4 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-sm shadow-emerald-600/30">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Initiate Connected Dispatch</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. Connected Response State Machine & Audit (5 Cols) -->
+              <div class="col-span-12 md:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-6 h-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs border border-amber-100">3</div>
+                      <h3 class="text-xs font-bold text-slate-900">Connected Response Stepper</h3>
+                    </div>
+                  </div>
+
+                  <!-- 5-Stage Stepper -->
+                  <div class="flex items-center justify-between mb-3 px-1">
+                    <div class="step-node active" id="step-triggered"><div class="circle">1</div><div class="label">Triggered</div></div>
+                    <div class="step-line" id="line-1"></div>
+                    <div class="step-node" id="step-triaged"><div class="circle">2</div><div class="label">Triaged</div></div>
+                    <div class="step-line" id="line-2"></div>
+                    <div class="step-node" id="step-dispatched"><div class="circle">3</div><div class="label">Dispatched</div></div>
+                    <div class="step-line" id="line-3"></div>
+                    <div class="step-node" id="step-transit"><div class="circle">4</div><div class="label">Transit</div></div>
+                    <div class="step-line" id="line-4"></div>
+                    <div class="step-node" id="step-admitted"><div class="circle">5</div><div class="label">Admitted</div></div>
+                  </div>
+
+                  <!-- Live Stream Feed -->
+                  <div id="audit-feed-box" class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px] font-mono text-slate-700 h-[120px] overflow-y-auto space-y-1 leading-relaxed">
+                    <div class="text-slate-400">[SYSTEM] Cryptographic SHA-256 Ledger Initialized...</div>
+                  </div>
+                </div>
+
+                <!-- Bed Simulator Button -->
+                <div class="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs">
+                  <span class="text-slate-500">Live Bed Sync:</span>
+                  <button id="sim-bed-btn" class="bg-slate-100 hover:bg-slate-200 text-rose-700 px-2.5 py-1 rounded-lg border border-slate-200 font-mono text-[11px] font-medium transition">
+                    +3 ICU Beds (HOSP-001)
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 1: VOICE-BASED EMERGENCY REQUEST (FULL FEATURE STUDIO)     -->
+      <!-- ============================================================== -->
+      <div id="view-voice" class="view-panel hidden space-y-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center space-x-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base border border-rose-100">1</div>
+            <div>
+              <h1 class="text-lg font-bold text-slate-900">Voice-Based Emergency Request Engine</h1>
+              <p class="text-xs text-slate-500">Sub-500ms voice capture, automated PII/PHI de-identification (HIPAA/DISHA), and real-time clinical urgency scoring.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-12 gap-6 mt-6">
+            <!-- Recording & Waveform (7 Cols) -->
+            <div class="col-span-12 lg:col-span-7 space-y-4">
+              <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-700 flex items-center space-x-2">
+                    <i class="fa-solid fa-wave-square text-rose-600"></i>
+                    <span>Real-Time Web Audio API Frequency Spectrum</span>
+                  </span>
+                  <span class="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Live Stream Active
+                  </span>
+                </div>
+
+                <canvas id="waveform-canvas-dedicated" class="w-full h-24 bg-white rounded-xl border border-slate-200"></canvas>
+
+                <div class="flex items-center justify-center space-x-6 py-2">
+                  <button id="record-btn-dedicated" class="h-16 w-16 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-lg shadow-rose-600/30 transition hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-microphone text-2xl"></i>
+                  </button>
+                  <div>
+                    <div class="text-sm font-bold text-slate-900">Tap to Start / Stop Recording</div>
+                    <div class="text-xs text-slate-500">Streams audio to Zero-Trust Triage Engine</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tactical Presets -->
+              <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
+                <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Simulate Tactical Emergency Scenarios:</div>
+                <div class="grid grid-cols-2 gap-3">
+                  <button class="preset-btn p-3 rounded-xl border border-slate-200 hover:border-rose-300 hover:bg-rose-50/50 text-left transition" data-scenario="cardiac">
+                    <div class="text-xs font-bold text-rose-700 flex items-center space-x-1.5 mb-1">
+                      <i class="fa-solid fa-heart-pulse text-rose-500"></i>
+                      <span>Cardiac Arrest</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 leading-snug">65yo male, crushing chest pain, faint pulse, SSN redacted.</div>
+                  </button>
+
+                  <button class="preset-btn p-3 rounded-xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50/50 text-left transition" data-scenario="trauma">
+                    <div class="text-xs font-bold text-amber-700 flex items-center space-x-1.5 mb-1">
+                      <i class="fa-solid fa-car-burst text-amber-500"></i>
+                      <span>Highway Trauma Collision</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 leading-snug">Multi-car crash, compound femoral fracture, MRN tokenized.</div>
+                  </button>
+
+                  <button class="preset-btn p-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 text-left transition" data-scenario="respiratory">
+                    <div class="text-xs font-bold text-sky-700 flex items-center space-x-1.5 mb-1">
+                      <i class="fa-solid fa-lungs text-sky-500"></i>
+                      <span>Pediatric Respiratory</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 leading-snug">8yo male, severe acute asthma, cyanosis, caller phone scrubbed.</div>
+                  </button>
+
+                  <button class="preset-btn p-3 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-left transition" data-scenario="failsafe">
+                    <div class="text-xs font-bold text-purple-700 flex items-center space-x-1.5 mb-1">
+                      <i class="fa-solid fa-shield-cat text-purple-500"></i>
+                      <span>Ambiguous Audio / Fail-Safe</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 leading-snug">High background static. Enforces automatic escalation to Critical.</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Triage Results & Scrubbed Feed (5 Cols) -->
+            <div class="col-span-12 lg:col-span-5 space-y-4">
+              <!-- Live Transcript Box -->
+              <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-700">Scrubbed Clinical Intake Feed</span>
+                  <span class="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">AES-256 Tokenized</span>
+                </div>
+                <div id="transcript-box-dedicated" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-700 min-h-[90px] max-h-[120px] overflow-y-auto leading-relaxed">
+                  Ready to capture emergency voice stream...
+                </div>
+              </div>
+
+              <!-- AI Triage Matrix Details -->
+              <div class="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
+                <div class="text-xs font-bold text-slate-800">AI Clinical Urgency Breakdown</div>
+                
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500">Triage ID:</span>
+                    <span class="font-mono font-bold text-slate-800" id="ded-triage-id">--</span>
+                  </div>
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500">Emergency Classification:</span>
+                    <span class="font-bold text-rose-600" id="ded-triage-type">--</span>
+                  </div>
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500">Confidence Score:</span>
+                    <span class="font-bold text-emerald-600" id="ded-triage-conf">--</span>
+                  </div>
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-500">Estimated Patient Age:</span>
+                    <span class="font-bold text-slate-700" id="ded-triage-age">--</span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                    <div class="text-[10px] text-slate-500">ICU Bed Needed</div>
+                    <div class="text-sm font-bold text-slate-900 mt-0.5" id="ded-flag-icu">--</div>
+                  </div>
+                  <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                    <div class="text-[10px] text-slate-500">Oxygen Support</div>
+                    <div class="text-sm font-bold text-slate-900 mt-0.5" id="ded-flag-oxy">--</div>
+                  </div>
+                </div>
+
+                <button onclick="document.getElementById('nav-coordination').click()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow-sm shadow-rose-600/30">
+                  <span>Advance to Feature 2: Smart Hospital Coordination</span>
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 2: SMART HOSPITAL COORDINATION (FULL FEATURE STUDIO)      -->
+      <!-- ============================================================== -->
+      <div id="view-coordination" class="view-panel hidden space-y-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center space-x-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-base border border-sky-100">2</div>
+            <div>
+              <h1 class="text-lg font-bold text-slate-900">Smart Hospital Coordination Engine</h1>
+              <p class="text-xs text-slate-500">Pairs real-time emergency clinical demand with verified hospital capabilities (Trauma Level, Cath Lab, ICU, Burn Unit).</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-12 gap-6 mt-6">
+            <!-- Left: Match Filters & Criteria (4 Cols) -->
+            <div class="col-span-12 lg:col-span-4 space-y-4">
+              <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">Matching Parameters</div>
+
+                <div>
+                  <label class="text-xs text-slate-500 font-medium block mb-1">Search Radius (km): <span id="radius-val" class="font-bold text-slate-800">25 km</span></label>
+                  <input type="range" min="5" max="50" value="25" class="w-full accent-rose-600" oninput="document.getElementById('radius-val').innerText = this.value + ' km'">
+                </div>
+
+                <div class="space-y-2">
+                  <span class="text-xs text-slate-500 font-medium block">Required Hospital Capabilities:</span>
+                  <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="chk-icu" checked class="rounded text-rose-600 accent-rose-600">
+                    <span>ICU Bed Availability</span>
+                  </label>
+                  <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="chk-trauma" checked class="rounded text-rose-600 accent-rose-600">
+                    <span>Level-1 / Level-2 Trauma Center</span>
+                  </label>
+                  <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="chk-cath" class="rounded text-rose-600 accent-rose-600">
+                    <span>Cardiac Cath Lab (24/7)</span>
+                  </label>
+                  <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="chk-burn" class="rounded text-rose-600 accent-rose-600">
+                    <span>Burn Intensive Care Unit</span>
+                  </label>
+                </div>
+
+                <button onclick="executeHospitalMatch()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow-sm shadow-sky-600/30">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                  <span>Re-compute Readiness Index</span>
+                </button>
+              </div>
+
+              <!-- Trust Index Legend -->
+              <div class="bg-white p-4 rounded-2xl border border-slate-200 text-xs space-y-2">
+                <div class="font-bold text-slate-800">Trust & Readiness Scoring</div>
+                <div class="text-[11px] text-slate-500 leading-relaxed">
+                  Formula combines verified ICU beds, verified ER bays, distance in km, traffic ETA, and historical admission acceptance rate.
+                </div>
+                <div class="flex items-center space-x-2 text-[11px]">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <span class="text-slate-600">90-100%: High Trust & Readiness</span>
+                </div>
+                <div class="flex items-center space-x-2 text-[11px]">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span class="text-slate-600">75-89%: Capacity Constrained</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Ranked Hospital Cards (8 Cols) -->
+            <div class="col-span-12 lg:col-span-8 space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-800">Ranked Facility Matches for Active Emergency</span>
+                <span class="text-xs text-slate-500" id="ded-match-count">Showing Matched Healthcare Facilities</span>
+              </div>
+
+              <div id="ded-hospitals-container" class="space-y-3">
+                <!-- Populated dynamically via JS -->
+              </div>
+
+              <div class="pt-3 flex items-center justify-end">
+                <button onclick="document.getElementById('nav-response').click()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition flex items-center space-x-2 shadow-sm shadow-rose-600/30">
+                  <span>Proceed to Feature 3: Connected Emergency Response</span>
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 3: CONNECTED EMERGENCY RESPONSE (FULL FEATURE STUDIO)     -->
+      <!-- ============================================================== -->
+      <div id="view-response" class="view-panel hidden space-y-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center space-x-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-base border border-amber-100">3</div>
+            <div>
+              <h1 class="text-lg font-bold text-slate-900">Connected Emergency Response Engine</h1>
+              <p class="text-xs text-slate-500">Accelerating ambulance and hospital coordination through pre-arrival hospital alerts, sub-second telemetry, and bidirectional state synchronization.</p>
+            </div>
+          </div>
+
+          <!-- Highlight Banner: Why Coordination Happens Faster -->
+          <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex items-start space-x-3 mt-4">
+            <i class="fa-solid fa-bolt-lightning text-amber-600 text-base mt-0.5"></i>
+            <div>
+              <div class="font-bold text-amber-800">How Ambulance and Hospital Coordination Happens Faster:</div>
+              <p class="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                1. <strong>Pre-Arrival ER Notification:</strong> Target emergency department receives patient vitals, ETA, and required specialist team before ambulance arrival.<br>
+                2. <strong>Zero-Latency Telemetry Bus:</strong> Paramedic vehicle GPS and vital signs transmit over WebSockets to hospital triage bays in real-time.<br>
+                3. <strong>Immediate Bed Reservation Handshake:</strong> One-click lock guarantees ICU bed availability without phone call delays.
+              </p>
+            </div>
+          </div>
+
+          <!-- Dual Coordination Deck: Ambulance Field vs Hospital ER -->
+          <div class="grid grid-cols-12 gap-6 mt-6">
+
+            <!-- Field Ambulance Unit Status (6 Cols) -->
+            <div class="col-span-12 lg:col-span-6 bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-truck-medical"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-900">Field Ambulance Dispatch Unit</div>
+                    <div class="text-[11px] text-slate-500" id="conn-amb-unit">AMB-101 (Red Rescue Alpha)</div>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-100 text-emerald-800">Ready for Transit</span>
+              </div>
+
+              <!-- Paramedic Live Vitals Stream -->
+              <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                <div class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span>Field Paramedic Telemetry Stream:</span>
+                  <span class="text-[10px] font-mono text-emerald-600">● Live Vitals Link</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                  <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                    <div class="text-[10px] text-slate-400">Heart Rate</div>
+                    <div class="text-xs font-bold text-rose-600">112 BPM</div>
+                  </div>
+                  <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                    <div class="text-[10px] text-slate-400">SpO2 Oxygen</div>
+                    <div class="text-xs font-bold text-sky-600">91% (Low)</div>
+                  </div>
+                  <div class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                    <div class="text-[10px] text-slate-400">Blood Pressure</div>
+                    <div class="text-xs font-bold text-slate-800">138 / 88</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action: Dispatch Trigger -->
+              <button onclick="executeDispatch()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow-sm shadow-rose-600/30">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Execute Emergency Dispatch Order</span>
+              </button>
+            </div>
+
+            <!-- Target Hospital Emergency Room Handshake (6 Cols) -->
+            <div class="col-span-12 lg:col-span-6 bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-hospital"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-900">Destination Hospital ER Station</div>
+                    <div class="text-[11px] text-slate-500" id="conn-target-hosp">St. Jude Level-1 Trauma & Heart Center</div>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-sky-100 text-sky-800">ER Bay Pre-Alerted</span>
+              </div>
+
+              <!-- ER Pre-Alert Status Box -->
+              <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                <div class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span>Pre-Arrival Coordination Status:</span>
+                  <span class="text-[10px] font-mono text-slate-500">ETA 8.4 Mins</span>
+                </div>
+                <div class="text-[11px] text-slate-600 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                  <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>
+                  <strong>Cath Lab #2 & Trauma Bay 1 Reserved:</strong> Emergency medical team notified to standby for immediate patient reception upon ambulance arrival.
+                </div>
+              </div>
+
+              <!-- Pre-Alert Trigger Button -->
+              <button onclick="sendERPreAlert()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow-sm shadow-emerald-600/30">
+                <i class="fa-solid fa-bell"></i>
+                <span>Broadcast Hospital ER Pre-Alert Handshake</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Emergency Lifecycle State Machine Stepper -->
+          <div class="mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
+            <div class="text-xs font-bold text-slate-800">Emergency Incident Lifecycle State Machine</div>
+            <div class="flex items-center justify-between px-4 py-2">
+              <div class="step-node active" id="step-triggered-d"><div class="circle">1</div><div class="label">1. Triggered</div></div>
+              <div class="step-line" id="line-1-d"></div>
+              <div class="step-node" id="step-triaged-d"><div class="circle">2</div><div class="label">2. Triaged</div></div>
+              <div class="step-line" id="line-2-d"></div>
+              <div class="step-node" id="step-dispatched-d"><div class="circle">3</div><div class="label">3. Dispatched</div></div>
+              <div class="step-line" id="line-3-d"></div>
+              <div class="step-node" id="step-transit-d"><div class="circle">4</div><div class="label">4. In Transit</div></div>
+              <div class="step-line" id="line-4-d"></div>
+              <div class="step-node" id="step-admitted-d"><div class="circle">5</div><div class="label">5. Admitted</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 4: REAL-TIME HOSPITAL INFORMATION (FULL FEATURE STUDIO)   -->
+      <!-- ============================================================== -->
+      <div id="view-hospital-info" class="view-panel hidden space-y-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center space-x-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base border border-emerald-100">4</div>
+            <div>
+              <h1 class="text-lg font-bold text-slate-900">Real-Time Hospital Information Network</h1>
+              <p class="text-xs text-slate-500">Connecting patients with suitable healthcare facilities faster through verified live bed inventories, equipment readiness, and capacity synchronization.</p>
+            </div>
+          </div>
+
+          <!-- Filters Bar -->
+          <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pb-4 border-b border-slate-200">
+            <div class="flex items-center space-x-2 text-xs">
+              <button class="hosp-filter-btn px-3 py-1.5 rounded-lg font-bold bg-rose-600 text-white" data-filter="all">All Facilities (5)</button>
+              <button class="hosp-filter-btn px-3 py-1.5 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-filter="trauma">Trauma Level-1</button>
+              <button class="hosp-filter-btn px-3 py-1.5 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-filter="cardiac">Cardiac Cath Lab</button>
+              <button class="hosp-filter-btn px-3 py-1.5 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-filter="burn">Burn Unit</button>
+              <button class="hosp-filter-btn px-3 py-1.5 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" data-filter="icu">High ICU Capacity</button>
+            </div>
+
+            <!-- Capacity Simulator Trigger -->
+            <button id="sim-bed-btn-full" class="bg-slate-100 hover:bg-slate-200 text-rose-700 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-mono font-medium transition flex items-center space-x-1.5">
+              <i class="fa-solid fa-satellite-dish text-rose-600"></i>
+              <span>Simulate Real-Time Bed Sync</span>
+            </button>
+          </div>
+
+          <!-- Hospital Facilities Grid -->
+          <div id="hospital-directory-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 5: AMBULANCE ON A MAP (FULL FEATURE STUDIO - GOOGLE MAPS) -->
+      <!-- ============================================================== -->
+      <div id="view-map" class="view-panel hidden space-y-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col h-[calc(100vh-140px)]">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-base border border-indigo-100">5</div>
+              <div>
+                <h1 class="text-lg font-bold text-slate-900">Ambulance Fleet on a Map (Official Google Maps API)</h1>
+                <p class="text-xs text-slate-500">Live sub-second GPS vehicle telemetry, Google Maps official SDK integration, and interactive route waypoint simulation.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2 text-xs">
+              <button id="gmaps-config-btn-map" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-semibold transition flex items-center space-x-1.5">
+                <i class="fa-brands fa-google text-rose-600"></i>
+                <span id="gmaps-btn-text">Google Maps API Key</span>
+              </button>
+
+              <button id="sim-route-btn" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5 shadow-sm shadow-rose-600/30">
+                <i class="fa-solid fa-play"></i>
+                <span>Simulate Ambulance Route</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Map Viewport -->
+          <div class="flex-1 w-full rounded-2xl border border-slate-200 relative overflow-hidden">
+            <div id="google-map-container-dedicated" class="hidden absolute inset-0 z-10"></div>
+            <div id="leaflet-map-dedicated" class="absolute inset-0 z-0"></div>
+
+            <!-- Fleet Overlays / HUD -->
+            <div class="absolute top-4 left-4 z-[400] bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-md text-xs space-y-1.5 w-64">
+              <div class="font-bold text-slate-800 flex items-center justify-between">
+                <span>Fleet Telemetry HUD</span>
+                <span class="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-mono">LIVE GPS</span>
+              </div>
+              <div class="text-[11px] text-slate-600 flex justify-between">
+                <span>Unit:</span>
+                <span class="font-bold text-slate-900">AMB-101 (Red Rescue Alpha)</span>
+              </div>
+              <div class="text-[11px] text-slate-600 flex justify-between">
+                <span>Current Speed:</span>
+                <span class="font-bold text-emerald-600" id="hud-speed">58.4 km/h</span>
+              </div>
+              <div class="text-[11px] text-slate-600 flex justify-between">
+                <span>Coordinates:</span>
+                <span class="font-mono text-slate-800" id="hud-coords">12.9650° N, 77.5900° E</span>
+              </div>
+              <div class="text-[11px] text-slate-600 flex justify-between">
+                <span>ETA to Hospital:</span>
+                <span class="font-bold text-rose-600" id="hud-eta">4.2 min</span>
+              </div>
+            </div>
+
+            <!-- Active Fleet Pill Selector -->
+            <div class="absolute bottom-4 left-4 right-4 z-[400] bg-white/95 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-lg flex items-center justify-between overflow-x-auto gap-4">
+              <div class="flex items-center space-x-3 text-xs">
+                <span class="font-bold text-slate-800 whitespace-nowrap">Active Ambulances:</span>
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold border border-rose-200 flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-600 animate-ping"></span>
+                    <span>AMB-101 (Alpha)</span>
+                  </span>
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">AMB-102 (Bravo)</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">AMB-103 (Charlie)</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">AMB-104 (ICU Delta)</span>
+                </div>
+              </div>
+
+              <div class="text-xs font-mono text-slate-500 whitespace-nowrap">
+                Sub-Second WebSocket Telemetry Bus Active
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: GOOGLE MAPS API KEY CONFIGURATOR                        -->
+  <!-- ============================================================== -->
+  <div id="gmaps-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-sm">
+            <i class="fa-brands fa-google"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Google Maps Official API Key Settings</h3>
+            <p class="text-[11px] text-slate-500">Configure your official Google Cloud Maps JavaScript API key</p>
+          </div>
+        </div>
+        <button id="close-gmaps-modal" class="text-slate-400 hover:text-slate-700 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-600 leading-relaxed">
+          To display official Google Maps satellite/roadmap tiles, Google traffic overlays, and Google directions in this prototype, enter your Google Cloud API Key with <strong>Maps JavaScript API</strong> enabled.
+        </p>
+
+        <div>
+          <label class="block text-slate-700 font-bold mb-1">Google Maps API Key:</label>
+          <div class="relative">
+            <input type="password" id="gmaps-key-input" placeholder="AIzaSy..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-rose-500 focus:bg-white pr-10">
+            <button type="button" id="toggle-key-visibility" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs">
+              <i class="fa-solid fa-eye" id="eye-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500 space-y-1">
+          <div class="font-bold text-slate-700">Notice & Zero-Trust Safety:</div>
+          <div>• Keys are stored only locally in your browser's <code class="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">localStorage</code>.</div>
+          <div>• If left blank, the prototype seamlessly runs with high-resolution bright vector maps (OpenStreetMap) so all ambulance routes and hospital nodes remain fully functional!</div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+        <button id="clear-gmaps-key-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+          Clear Key
+        </button>
+        <button id="save-gmaps-key-btn" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition shadow-sm shadow-rose-600/30">
+          Save & Activate Google Maps
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: SHA-256 IMMUTABLE AUDIT LEDGER INSPECTOR                -->
+  <!-- ============================================================== -->
+  <div id="audit-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-6">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+            <i class="fa-solid fa-cube text-emerald-600"></i>
+            <span>SHA-256 Immutable Audit Ledger Inspector</span>
+          </h3>
+          <p class="text-xs text-slate-500">Cryptographically Chained Emergency Event History & Tamper Detection</p>
+        </div>
+        <button id="close-audit-modal" class="text-slate-400 hover:text-slate-700 text-xl">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl mb-4 border border-slate-200 text-xs">
+        <div>
+          <span class="text-slate-500">Chain Integrity Status:</span>
+          <span class="font-bold text-emerald-600 ml-1" id="modal-integrity-status">VERIFIED (100% UNTAMPERED)</span>
+        </div>
+        <div>
+          <span class="text-slate-500">Total Blocks:</span>
+          <span class="font-bold text-slate-900 ml-1 font-mono" id="modal-total-blocks">0</span>
+        </div>
+      </div>
+
+      <div id="modal-blocks-container" class="flex-1 overflow-y-auto space-y-3 font-mono text-xs pr-2">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

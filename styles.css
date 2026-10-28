@@ -1,0 +1,359 @@
+/* RED.HEALTH Emergency Connect - Bright Theme Design System & Micro-Animations */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary-red: #E11D48;
+  --primary-red-hover: #BE123C;
+  --primary-red-light: #FFF1F2;
+  --accent-blue: #0284C7;
+  --accent-emerald: #059669;
+  --accent-amber: #D97706;
+  --surface-white: #FFFFFF;
+  --surface-canvas: #F8FAFC;
+  --surface-card: #FFFFFF;
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-soft: #94A3B8;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--surface-canvas);
+  color: var(--text-main);
+}
+
+/* Custom Light Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Clean Bright Leaflet Map Styling */
+.leaflet-container {
+  background-color: #EDF2F7 !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+.leaflet-tile {
+  filter: saturate(1.1) contrast(1.02);
+}
+
+.leaflet-popup-content-wrapper {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08) !important;
+  padding: 4px;
+}
+
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
+}
+
+/* Map Markers */
+.custom-amb-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-amb-badge {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: #E11D48;
+  border: 2.5px solid #FFFFFF;
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.45);
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+
+.custom-amb-badge:hover {
+  transform: scale(1.15);
+}
+
+.custom-amb-pulse {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid #E11D48;
+  animation: amb-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes amb-ping {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  80%, 100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.custom-hosp-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-hosp-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 2px solid #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+
+.custom-hosp-badge:hover {
+  transform: scale(1.15);
+}
+
+.custom-incident-pin {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  background: #DC2626;
+  border: 3px solid #FFFFFF;
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.5);
+  animation: incident-pulse 2s infinite;
+}
+
+@keyframes incident-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(220, 38, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+
+/* Stepper Component (Bright Theme) */
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  cursor: default;
+}
+
+.step-node .circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 2px solid #CBD5E1;
+  color: #64748B;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.step-node .label {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.step-node.active .circle {
+  background-color: #E11D48;
+  border-color: #E11D48;
+  color: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.2), 0 4px 10px rgba(225, 29, 72, 0.35);
+  animation: active-step-glow 2s infinite ease-in-out;
+}
+
+@keyframes active-step-glow {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.step-node.active .label {
+  color: #E11D48;
+  font-weight: 700;
+}
+
+.step-node.completed .circle {
+  background-color: #059669;
+  border-color: #059669;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+
+.step-node.completed .label {
+  color: #059669;
+}
+
+.step-line {
+  flex: 1;
+  height: 3px;
+  background-color: #E2E8F0;
+  margin-top: -20px;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.step-line.completed {
+  background-color: #059669;
+}
+
+/* Left Navigation Feature Items */
+.feature-nav-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+}
+
+.feature-nav-btn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+  border-color: #E2E8F0;
+}
+
+.feature-nav-btn.active {
+  background-color: #FFF1F2;
+  color: #BE123C;
+  border-color: #FECDD3;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.08);
+}
+
+.feature-nav-btn.active .feature-number {
+  background-color: #E11D48;
+  color: #FFFFFF;
+}
+
+.feature-nav-btn .feature-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background-color: #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+/* Glass Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid #E2E8F0;
+}
+
+/* Siren Pulse Indicator */
+.siren-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #E11D48;
+  position: relative;
+}
+
+.siren-badge::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  background-color: rgba(225, 29, 72, 0.4);
+  animation: siren-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes siren-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Google Maps Container */
+#google-map-container, #leaflet-map {
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  border-radius: 12px;
+}
+
+/* Audio Waveform Canvas */
+#waveform-canvas {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F6 100%);
+  border: 1px solid #FFE4E6;
+}
+
+/* Subtle Shimmer for Pre-alert */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.prealert-shimmer {
+  background: linear-gradient(90deg, #ECFDF5 0%, #D1FAE5 50%, #ECFDF5 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
