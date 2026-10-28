@@ -24,4 +24,33 @@
 
 2. **Smart Hospital Capability Matching**
    * Pairs real-time clinical demand with verified hospital readiness (Trauma Levels, Burn Units, and live ICU/ER bed inventories).
-   * Uses an advanced trust-and-readiness scoring model
+   * Uses an advanced trust-and-readiness scoring model combining traffic ETA, distance, and historical admission acceptance rates.
+
+3. **Real-Time WebSocket Fleet Telemetry**
+   * Integrated with interactive Leaflet and Google Maps architecture.
+   * Streams live GPS vehicle coordinates, current speed, and dynamic ETAs for active ambulance units (`AMB-101` through `104`).
+   * Syncs paramedics and ER bays across a 5-step lifecycle state machine (*Triggered ➔ Triaged ➔ Dispatched ➔ In Transit ➔ Admitted*).
+
+4. **Cryptographic SHA-256 Immutable Audit Ledger**
+   * Every critical event—from voice capture to bed reservation—is immutably chained into a local cryptographic ledger with a **100% tamper-proof verification check** for absolute zero-trust accountability.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Backend:** FastAPI (Python), High-Throughput WebSockets, RESTful Endpoints.
+* **Frontend:** Vanilla JavaScript, HTML5 Web Audio API, Modern CSS / Tailwind Architecture.
+* **Mapping & Telemetry:** Leaflet.js Vector Tiles, Google Maps JavaScript API SDK Integration.
+* **Security & Compliance:** AES-256 Tokenization, SHA-256 Cryptographic Hashing Ledger, HIPAA/DISHA-aligned PII scrubbers.
+
+---
+
+## 📂 Project Architecture
+
+```text
+red-emergency-connect/
+├── index.html              # Main Command Center UI & Role-Based Layout
+├── assets/                 # Icons, Logos & Styling Sheets
+├── js/                     # Frontend State Machines, Map Handlers & Audio Visualizers
+├── backend/                # FastAPI Endpoints, Telemetry Bus & Triage Logic
+└── README.md               # Project Documentation
